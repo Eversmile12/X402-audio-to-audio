@@ -25,7 +25,7 @@ SAMPLE_RATE = 48000
 TONE_FREQ = 2400  # Hz - single tone for "1" bits
 BIT_DURATION = 0.010  # 10ms per bit (100 baud)
 SAMPLES_PER_BIT = int(SAMPLE_RATE * BIT_DURATION)
-REPETITIONS = 2  # 2x for speed with decent reliability
+REPETITIONS = 3  # 3x for proper majority voting (odd number required)
 
 # Amplitude threshold for detecting "tone present"
 DETECTION_THRESHOLD = 0.15
@@ -177,11 +177,11 @@ def decode_fsk(audio: np.ndarray) -> bytes | None:
     
     Returns the decoded payload, or None if decoding fails.
     """
-    # Tight bandpass filter around 2400Hz (±400Hz = 2000-2800Hz)
-    # Rejects voice frequencies while giving headroom for noise
+    # Bandpass filter around 2400Hz (±500Hz = 1900-2900Hz)
+    # Wide enough for speaker/mic drift, tight enough to reject voice
     nyquist = SAMPLE_RATE / 2
-    low = (TONE_FREQ - 400) / nyquist   # 2000 Hz
-    high = (TONE_FREQ + 400) / nyquist  # 2800 Hz
+    low = (TONE_FREQ - 500) / nyquist   # 1900 Hz
+    high = (TONE_FREQ + 500) / nyquist  # 2900 Hz
     b, a = signal.butter(4, [low, high], btype='band')  # 4th order for sharper rolloff
     filtered = signal.filtfilt(b, a, audio)
     
@@ -206,11 +206,10 @@ def decode_fsk(audio: np.ndarray) -> bytes | None:
     # Normalize powers
     normalized_powers = window_powers / max_power
     
-    # Calculate adaptive threshold using percentiles
-    # This handles varying signal levels and noise floors
-    high_level = np.percentile(normalized_powers, 85)  # Typical "1" power
-    low_level = np.percentile(normalized_powers, 15)   # Typical "0" power
-    adaptive_threshold = (high_level + low_level) / 2
+    # Use fixed threshold ratio - more robust than percentiles
+    # Percentiles fail when recording has lots of silence before/after signal
+    # 0.25 works well: catches 1-bits that are 25%+ of max, rejects noise
+    adaptive_threshold = 0.25
     
     def decode_bit(start_idx: int) -> int | None:
         """Decode a single bit using Goertzel power at 2400Hz."""

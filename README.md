@@ -102,7 +102,7 @@ python ui_buyer.py
 2. Open **Buyer UI** at `http://localhost:5002`
 3. On Buyer: Click **"Activate Listener"**
 4. On Seller: Click **"Initiate Request"**
-5. Wait for audio exchange (~15-20 seconds total)
+5. Wait for audio exchange (~36 seconds total)
 6. Watch USDC balances update!
 
 ---
@@ -139,10 +139,10 @@ Standard x402 uses JSON payloads (~1KB+) — way too large for audio transmissio
 
 | Payload          | Standard x402   | Compact Binary |
 | ---------------- | --------------- | -------------- |
-| Payment Request  | ~800 bytes JSON | **54 bytes**   |
-| Payment Response | ~600 bytes JSON | **116 bytes**  |
+| Payment Request  | ~800 bytes JSON | **30 bytes**   |
+| Payment Response | ~600 bytes JSON | **108 bytes**  |
 
-This 10-15x reduction makes audio transmission practical (~15-20 seconds total vs several minutes).
+This 10x reduction makes audio transmission practical (~36 seconds total vs several minutes).
 
 See `compact_x402.py` for the encoding/decoding implementation.
 
@@ -152,11 +152,11 @@ See `compact_x402.py` for the encoding/decoding implementation.
 
 -   **Modulation**: OOK (On-Off Keying) at 2400 Hz
 -   **Bit rate**: 100 baud (10ms per bit)
--   **Redundancy**: 2x repetition coding with majority voting
+-   **Redundancy**: 3x repetition coding with majority voting
 -   **Error detection**: CRC-16
 -   **Noise rejection**:
     -   Goertzel algorithm for precise 2400Hz tone detection
-    -   4th-order Butterworth bandpass filter (2000-2800 Hz)
+    -   4th-order Butterworth bandpass filter (1900-2900 Hz)
 
 ---
 

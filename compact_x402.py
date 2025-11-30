@@ -1,8 +1,11 @@
 """
 Compact binary encoding for x402 payment data.
 
-Reduces ~1200 bytes of JSON to ~127 bytes of binary while preserving
+Reduces ~1200 bytes of JSON to ~138 bytes of binary while preserving
 all data needed for cryptographic verification.
+
+Request: 30 bytes (implicit USDC asset, 4-byte price)
+Response: 108 bytes (4-byte timestamps)
 """
 
 import struct
@@ -34,22 +37,23 @@ class CompactPaymentRequest:
     """
     Compact binary encoding of x402 payment requirements.
     
-    Format (54 bytes total):
+    Format (30 bytes total):
     - version: 1 byte (uint8)
     - network: 1 byte (uint8, enum)
     - scheme: 1 byte (uint8, 0=exact)
-    - price: 8 bytes (uint64, micro-units)
+    - price: 4 bytes (uint32, micro-units, max ~$4000)
     - pay_to: 20 bytes (address)
-    - asset: 20 bytes (address)
     - timeout: 2 bytes (uint16, seconds)
     - nonce: 1 byte (uint8, simple counter)
+    
+    Asset address is implicit (USDC based on network).
     """
     version: int
     network: str
     scheme: str
     price: int  # in base units (e.g., micro-USDC)
     pay_to: str  # 0x address
-    asset: str   # 0x address
+    asset: str   # 0x address (derived from network, not transmitted)
     timeout: int  # seconds
     nonce: int
     
@@ -58,40 +62,43 @@ class CompactPaymentRequest:
     description: str = ""
     
     def to_bytes(self) -> bytes:
-        """Encode to compact binary format."""
+        """Encode to compact binary format (30 bytes)."""
         network_id = NETWORKS.get(self.network, 0)
         scheme_id = 0 if self.scheme == "exact" else 1
         
         pay_to_bytes = bytes.fromhex(self.pay_to[2:])
-        asset_bytes = bytes.fromhex(self.asset[2:])
         
+        # Asset is implicit (USDC) - not transmitted
         return struct.pack(
-            ">B B B Q 20s 20s H B",
+            ">B B B I 20s H B",
             self.version,
             network_id,
             scheme_id,
-            self.price,
+            min(self.price, 0xFFFFFFFF),  # 4-byte max
             pay_to_bytes,
-            asset_bytes,
             min(self.timeout, 65535),
             self.nonce % 256
         )
     
     @classmethod
     def from_bytes(cls, data: bytes) -> "CompactPaymentRequest":
-        """Decode from compact binary format."""
-        version, network_id, scheme_id, price, pay_to_bytes, asset_bytes, timeout, nonce = struct.unpack(
-            ">B B B Q 20s 20s H B",
-            data[:54]
+        """Decode from compact binary format (30 bytes)."""
+        version, network_id, scheme_id, price, pay_to_bytes, timeout, nonce = struct.unpack(
+            ">B B B I 20s H B",
+            data[:30]
         )
+        
+        network = NETWORKS_REVERSE.get(network_id, "base-sepolia")
+        # Derive asset from network (implicit USDC)
+        asset = USDC_ADDRESSES.get(network, USDC_ADDRESSES["base-sepolia"])
         
         return cls(
             version=version,
-            network=NETWORKS_REVERSE.get(network_id, "base-sepolia"),
+            network=network,
             scheme="exact" if scheme_id == 0 else "unknown",
             price=price,
             pay_to="0x" + pay_to_bytes.hex(),
-            asset="0x" + asset_bytes.hex(),
+            asset=asset,
             timeout=timeout,
             nonce=nonce
         )
@@ -138,7 +145,7 @@ class CompactPaymentResponse:
     """
     Compact binary encoding of x402 payment header.
     
-    Format (116 bytes total):
+    Format (108 bytes total):
     - version: 1 byte (uint8)
     - network: 1 byte (uint8, enum)
     - scheme: 1 byte (uint8)
@@ -146,8 +153,8 @@ class CompactPaymentResponse:
     - signature_r: 32 bytes
     - signature_s: 32 bytes
     - nonce: 32 bytes (hex string in original)
-    - valid_after: 8 bytes (uint64, unix timestamp)
-    - valid_before: 8 bytes (uint64, unix timestamp)
+    - valid_after: 4 bytes (uint32, unix timestamp - works until 2106)
+    - valid_before: 4 bytes (uint32, unix timestamp)
     """
     version: int
     network: str
@@ -158,7 +165,7 @@ class CompactPaymentResponse:
     valid_before: int  # Unix timestamp
     
     def to_bytes(self) -> bytes:
-        """Encode to compact binary format."""
+        """Encode to compact binary format (108 bytes)."""
         network_id = NETWORKS.get(self.network, 0)
         scheme_id = 0 if self.scheme == "exact" else 1
         
@@ -176,7 +183,7 @@ class CompactPaymentResponse:
         nonce_bytes = bytes.fromhex(nonce_hex)
         
         return struct.pack(
-            ">B B B B 32s 32s 32s Q Q",
+            ">B B B B 32s 32s 32s I I",
             self.version,
             network_id,
             scheme_id,
@@ -190,10 +197,10 @@ class CompactPaymentResponse:
     
     @classmethod
     def from_bytes(cls, data: bytes) -> "CompactPaymentResponse":
-        """Decode from compact binary format."""
+        """Decode from compact binary format (108 bytes)."""
         version, network_id, scheme_id, v, r, s, nonce_bytes, valid_after, valid_before = struct.unpack(
-            ">B B B B 32s 32s 32s Q Q",
-            data[:116]
+            ">B B B B 32s 32s 32s I I",
+            data[:108]
         )
         
         # Reconstruct signature
@@ -266,17 +273,17 @@ def test_compact_encoding():
         scheme="exact",
         price=1000,  # $0.001 in micro-USDC
         pay_to="0x5b12EA8DC4f37F4998d5A1BCf63Ac9d6fd89bd4e",
-        asset="0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        asset="0x036CbD53842c5426634e7929541eC2318f3dCF7e",  # Will be derived, not transmitted
         timeout=60,
         nonce=1
     )
     
     encoded = request.to_bytes()
     print(f"   Original: network={request.network}, price={request.price}")
-    print(f"   Encoded: {len(encoded)} bytes")
+    print(f"   Encoded: {len(encoded)} bytes (was 54)")
     
     decoded = CompactPaymentRequest.from_bytes(encoded)
-    print(f"   Decoded: network={decoded.network}, price={decoded.price}")
+    print(f"   Decoded: network={decoded.network}, price={decoded.price}, asset={decoded.asset[:10]}...")
     print(f"   Match: {decoded.network == request.network and decoded.price == request.price}")
     
     # Test payment response
@@ -293,7 +300,7 @@ def test_compact_encoding():
     
     encoded = response.to_bytes()
     print(f"   Original: valid_before={response.valid_before}")
-    print(f"   Encoded: {len(encoded)} bytes")
+    print(f"   Encoded: {len(encoded)} bytes (was 116)")
     
     decoded = CompactPaymentResponse.from_bytes(encoded)
     print(f"   Decoded: valid_before={decoded.valid_before}")
@@ -301,13 +308,13 @@ def test_compact_encoding():
     
     # Total size
     print("\n3. Size Summary")
-    req_size = 54
-    resp_size = 116
-    print(f"   Payment request: {req_size} bytes")
-    print(f"   Payment response: {resp_size} bytes")
-    print(f"   Total: {req_size + resp_size} bytes")
-    print(f"   vs JSON: ~1200 bytes")
-    print(f"   Compression: {100 - (req_size + resp_size) * 100 // 1200}%")
+    req_size = 30
+    resp_size = 108
+    print(f"   Payment request: {req_size} bytes (was 54)")
+    print(f"   Payment response: {resp_size} bytes (was 116)")
+    print(f"   Total: {req_size + resp_size} bytes (was 170)")
+    print(f"   Savings: {170 - (req_size + resp_size)} bytes ({(170 - (req_size + resp_size)) * 100 // 170}%)")
+    print(f"   vs JSON: ~1200 bytes → {100 - (req_size + resp_size) * 100 // 1200}% compression")
 
 
 if __name__ == "__main__":

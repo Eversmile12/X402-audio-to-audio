@@ -574,7 +574,7 @@ def run_buyer_flow():
         state["message"] = "🎤 Listening for payment request..."
         print(f"[DEBUG] State set to listening")
         
-        request_duration = get_duration(54) + 8  # 54 bytes + generous buffer
+        request_duration = get_duration(30) + 8  # 30 bytes + generous buffer
         print(f"[DEBUG] Will record for {request_duration:.1f} seconds...")
         
         try:

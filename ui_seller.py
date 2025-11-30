@@ -561,7 +561,7 @@ def run_seller_flow():
         
         state["message"] = "🎤 Listening for payment response..."
         
-        response_duration = get_duration(116) + 8  # Extra buffer
+        response_duration = get_duration(108) + 5  # 108 bytes + buffer
         
         # Use InputStream callback to capture amplitude in real-time
         recording_buffer = []
