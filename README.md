@@ -48,7 +48,7 @@ EIP-3009 (`transferWithAuthorization`) lets you sign a payment authorization off
 3. Buyer broadcasts **signed payment** back as audio (108 bytes)
 4. Seller settles on-chain
 
-**Total time:** ~36 seconds of beeping. Worth it for the flex.
+**Total time:** ~36 seconds of beeping.
 
 ---
 
