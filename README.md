@@ -4,6 +4,8 @@
 
 This project demonstrates Coinbase's [x402 protocol](https://docs.cdp.coinbase.com/x402) working over audio instead of HTTP. A seller broadcasts a payment request as sound, the buyer's device listens, signs the payment, and transmits the authorization back, all through audible tones.
 
+**Payment negotiation can happen entirely offline**. Only settlement requires internet.
+
 ![X402 Audio Protocol UI](assets/image.png)
 
 ---
@@ -202,6 +204,20 @@ lsof -ti:4021 | xargs kill -9
 ### No USDC balance
 
 Get testnet USDC from the [Coinbase Developer Faucet](https://portal.cdp.coinbase.com/products/faucet).
+
+---
+
+## Why This Matters
+
+The entire payment negotiation (request → authorization → response) happens **without any network connection** between buyer and seller. The buyer's device never touches the internet — it just listens, signs locally, and broadcasts back through air.
+
+Only the seller needs connectivity, and only for the final settlement step. This separation means:
+
+-   **Spotty connectivity?** Negotiate payments anywhere, settle when you have signal
+-   **Privacy?** No network traffic to sniff during the transaction
+-   **Latency?** The cryptographic handshake happens at the speed of sound
+
+Audio is just one transport. The same principle works over Bluetooth, NFC, or even QR code exchanges.
 
 ---
 
