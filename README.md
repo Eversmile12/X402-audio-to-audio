@@ -2,7 +2,9 @@
 
 **USDC payments transmitted over sound waves.**
 
-This project demonstrates Coinbase's [x402 protocol](https://docs.cdp.coinbase.com/x402) working over audio instead of HTTP. A seller broadcasts a payment request as sound, the buyer's device listens, signs the payment, and transmits the authorization back — all through audible tones.
+This project demonstrates Coinbase's [x402 protocol](https://docs.cdp.coinbase.com/x402) working over audio instead of HTTP. A seller broadcasts a payment request as sound, the buyer's device listens, signs the payment, and transmits the authorization back, all through audible tones.
+
+![X402 Audio Protocol UI](assets/image.png)
 
 ---
 
@@ -126,7 +128,6 @@ x402-demo/
 | `SELLER_ADDRESS`    | Wallet address to receive payments | `server_x402.py`, `ui_seller.py` |
 | `BUYER_ADDRESS`     | Buyer's wallet address             | `ui_seller.py`                   |
 | `BUYER_PRIVATE_KEY` | Buyer's private key for signing    | `ui_buyer.py`                    |
-
 
 ---
 
