@@ -209,7 +209,7 @@ Get testnet USDC from the [Coinbase Developer Faucet](https://portal.cdp.coinbas
 
 ## Why This Matters
 
-The entire payment negotiation (request → authorization → response) happens **without any network connection** between buyer and seller. The buyer's device never touches the internet — it just listens, signs locally, and broadcasts back through air.
+The entire payment negotiation (request → authorization → response) happens **without any network connection** between buyer and seller. The buyer's device never touches the internet, it just listens, signs locally, and broadcasts back through air.
 
 Only the seller needs connectivity, and only for the final settlement step. This separation means:
 
@@ -217,7 +217,7 @@ Only the seller needs connectivity, and only for the final settlement step. This
 -   **Privacy?** No network traffic to sniff during the transaction
 -   **Latency?** The cryptographic handshake happens at the speed of sound
 
-Audio is just one transport. The same principle works over Bluetooth, NFC, or even QR code exchanges.
+Audio is just one transport. The same principle works over Bluetooth, NFC, light, or even QR code exchanges.
 
 ---
 
@@ -227,7 +227,6 @@ Audio is just one transport. The same principle works over Bluetooth, NFC, or ev
 -   **Direct settlement**: Skip Facilitator, call USDC contract directly
 -   **Stronger FEC**: Reed-Solomon codes for error correction
 -   **FSK modulation**: Better performance in reverberant spaces
--   **Mobile apps**: iOS/Android native implementations
 
 ---
 
