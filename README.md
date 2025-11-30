@@ -1,4 +1,4 @@
-# x402 Audio Demo
+# x402 Audio-to-audio Demo
 
 **USDC payments transmitted over sound waves.**
 
@@ -11,7 +11,7 @@ This project demonstrates Coinbase's [x402 protocol](https://docs.cdp.coinbase.c
 ```
 ┌──────────────┐                              ┌──────────────┐
 │  SELLER UI   │ ──── audio (2400Hz OOK) ──── │  BUYER UI    │
-│  (laptop 1)  │                              │  (laptop 2)  │
+│  (client 1)  │                              │  (client 2)  │
 │              │ ◄─── audio (2400Hz OOK) ──── │              │
 └──────┬───────┘                              └──────────────┘
        │
@@ -31,7 +31,7 @@ This project demonstrates Coinbase's [x402 protocol](https://docs.cdp.coinbase.c
 ## Prerequisites
 
 -   **Python 3.11+**
--   **Two devices with speakers/microphones** (or one device for testing with WAV files)
+-   **One or two devices with speakers/microphones**
 -   **Base Sepolia testnet wallets** with:
     -   USDC (get from [Coinbase faucet](https://portal.cdp.coinbase.com/products/faucet))
 
@@ -127,7 +127,6 @@ x402-demo/
 | `BUYER_ADDRESS`     | Buyer's wallet address             | `ui_seller.py`                   |
 | `BUYER_PRIVATE_KEY` | Buyer's private key for signing    | `ui_buyer.py`                    |
 
-That's it — only 3 variables needed. Any others in your `.env` (like `CDP_API_KEY_*`) are not used.
 
 ---
 
