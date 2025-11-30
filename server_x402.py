@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-x402 Seller Server - Following official docs exactly.
-
-This is a standard HTTP server with x402 payment middleware.
-Later we'll adapt this for audio transport.
-"""
 
 import os
 from typing import Any, Dict
