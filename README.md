@@ -113,7 +113,6 @@ python ui_buyer.py     # http://localhost:5002
 1. Open both UIs
 2. Buyer clicks **"Activate Listener"**
 3. Seller clicks **"Initiate Request"**
-4. Listen to the symphony of commerce 🎵
 5. Watch USDC move on-chain
 
 ---
