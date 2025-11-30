@@ -136,7 +136,7 @@ Standard x402 JSON is ~1KB. Too fat for audio. x402hz compresses it to:
 -   **Error correction:** 3x repetition + CRC-16
 -   **Detection:** Goertzel algorithm (laser-focused on 2400 Hz)
 
-Survives background noise, conversations, and questionable life choices.
+Survives background noise and conversations.
 
 ### Project Structure
 
