@@ -8,4 +8,4 @@ httpx
 web3
 eth-account
 python-dotenv
-x402
+pydantic

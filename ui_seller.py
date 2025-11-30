@@ -1,41 +1,24 @@
 #!/usr/bin/env python3
 """
-x402 Audio Seller - Web UI
-Run this on the SELLER laptop.
+Audio Seller - Web UI
+Run this on the SELLER device.
 """
 
 import os
 import time
-import base64
-import asyncio
 import threading
 from flask import Flask, render_template_string, jsonify, request
 import numpy as np
 import sounddevice as sd
 import scipy.io.wavfile as wav
-import httpx
-from web3 import Web3
 from dotenv import load_dotenv
 
 from fsk_modem import encode_fsk, decode_fsk, SAMPLE_RATE, get_duration
-from compact_x402 import CompactPaymentRequest, CompactPaymentResponse
+from payment import PaymentRequest, PaymentResponse
+from facilitator import settle_payment, SettlementRequest
+from config import get_usdc_balance
 
 load_dotenv()
-
-# Base Sepolia RPC
-w3 = Web3(Web3.HTTPProvider('https://sepolia.base.org'))
-USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
-USDC_ABI = [{"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]
-
-def get_usdc_balance(address):
-    """Get USDC balance for an address."""
-    try:
-        contract = w3.eth.contract(address=Web3.to_checksum_address(USDC_ADDRESS), abi=USDC_ABI)
-        balance = contract.functions.balanceOf(Web3.to_checksum_address(address)).call()
-        return balance / 1_000_000  # USDC has 6 decimals
-    except Exception as e:
-        print(f"[DEBUG] Balance error: {e}")
-        return 0.0
 
 app = Flask(__name__)
 
@@ -266,8 +249,8 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <div class="header">
-            <div class="title">x402</div>
-            <div class="subtitle">Audio Protocol v1.0</div>
+            <div class="title">x402hz</div>
+            <div class="subtitle">payments over audio v1</div>
             <div class="role-badge">SELLER_NODE</div>
         </div>
 
@@ -528,14 +511,11 @@ def run_seller_flow():
         state["status"] = "playing"
         state["message"] = "🔊 Broadcasting payment request..."
         
-        request = CompactPaymentRequest(
-            version=1,
-            network="base-sepolia",
-            scheme="exact",
-            price=1000,
+        request = PaymentRequest(
             pay_to=seller_address,
-            asset="0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+            price=1000,  # 0.001 USDC
             timeout=120,
+            network="base-sepolia",
             nonce=int(time.time()) % 256,
         )
         state["request"] = request
@@ -598,29 +578,22 @@ def run_seller_flow():
             state["message"] = "❌ Failed to decode response. Try again."
             return
         
-        response = CompactPaymentResponse.from_bytes(response_bytes)
-        payment_header = response.to_x_payment_header(request, buyer_address)
+        response = PaymentResponse.from_bytes(response_bytes)
         
-        # Verify with server
-        async def verify():
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(
-                    "http://localhost:4021/resource",
-                    headers={"X-PAYMENT": payment_header}
-                )
-                return resp
+        # Settle directly on-chain using our facilitator
+        settlement_params = response.to_settlement_params(buyer_address, request)
+        settlement_request = SettlementRequest(**settlement_params)
         
-        resp = asyncio.run(verify())
-        
-        if resp.status_code == 200:
-            data = resp.json()
+        try:
+            tx_hash = settle_payment(settlement_request)
             state["status"] = "success"
-            state["message"] = "✅ Payment verified!"
+            state["message"] = "✅ Payment settled on-chain!"
             state["verified"] = True
-            state["secret"] = data.get("secret", "Access granted!")
-        else:
+            state["secret"] = f"TX: {tx_hash[:16]}..."
+            print(f"[SUCCESS] Settlement TX: https://sepolia.basescan.org/tx/{tx_hash}")
+        except Exception as settle_error:
             state["status"] = "error"
-            state["message"] = f"❌ Verification failed: {resp.status_code}"
+            state["message"] = f"❌ Settlement failed: {str(settle_error)}"
             
     except Exception as e:
         state["status"] = "error"

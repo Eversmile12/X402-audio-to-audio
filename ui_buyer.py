@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-x402 Audio Buyer - Web UI
-Run this on the BUYER laptop.
+Audio Buyer - Web UI
+Run this on the BUYER device.
 """
 
 import os
@@ -12,28 +12,13 @@ import numpy as np
 import sounddevice as sd
 import scipy.io.wavfile as wav
 from eth_account import Account
-from web3 import Web3
 from dotenv import load_dotenv
 
 from fsk_modem import encode_fsk, decode_fsk, SAMPLE_RATE, get_duration
-from compact_x402 import CompactPaymentRequest, CompactPaymentResponse
+from payment import PaymentRequest, PaymentResponse, sign_authorization
+from config import get_usdc_balance
 
 load_dotenv()
-
-# Base Sepolia RPC
-w3 = Web3(Web3.HTTPProvider('https://sepolia.base.org'))
-USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
-USDC_ABI = [{"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]
-
-def get_usdc_balance(address):
-    """Get USDC balance for an address."""
-    try:
-        contract = w3.eth.contract(address=Web3.to_checksum_address(USDC_ADDRESS), abi=USDC_ABI)
-        balance = contract.functions.balanceOf(Web3.to_checksum_address(address)).call()
-        return balance / 1_000_000  # USDC has 6 decimals
-    except Exception as e:
-        print(f"[DEBUG] Balance error: {e}")
-        return 0.0
 
 app = Flask(__name__)
 
@@ -284,8 +269,8 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <div class="header">
-            <div class="title">x402</div>
-            <div class="subtitle">Audio Protocol v1.0</div>
+            <div class="title">x402hz</div>
+            <div class="subtitle">payments over audio v1</div>
             <div class="role-badge">BUYER_NODE</div>
         </div>
 
@@ -622,7 +607,7 @@ def run_buyer_flow():
             state["message"] = f"❌ Failed to decode (amp={max_amplitude:.2f}). Check timing."
             return
         
-        request = CompactPaymentRequest.from_bytes(request_bytes)
+        request = PaymentRequest.from_bytes(request_bytes)
         state["request_decoded"] = True
         state["price"] = request.price
         state["seller"] = request.pay_to
@@ -634,19 +619,18 @@ def run_buyer_flow():
         time.sleep(1)
         state["message"] = "✍️ Signing payment authorization..."
         
-        # Create payment using x402
-        from x402.clients.httpx import x402Client
-        from x402.types import PaymentRequirements
+        # Sign EIP-3009 authorization
+        auth = sign_authorization(
+            private_key=private_key,
+            to_address=request.pay_to,
+            value=request.price,
+            timeout_seconds=request.timeout,
+            chain_id=request.chain_id,
+        )
         
-        reconstructed_402 = request.to_402_response()
-        x402_client = x402Client(account)
-        accepts = [PaymentRequirements(**a) for a in reconstructed_402['accepts']]
-        selected = x402_client.select_payment_requirements(accepts)
-        payment_header = x402_client.create_payment_header(selected)
-        
-        # Convert to compact
-        compact_response = CompactPaymentResponse.from_x_payment_header(payment_header)
-        response_bytes = compact_response.to_bytes()
+        # Convert to compact response for audio transmission
+        response = PaymentResponse.from_authorization(auth, request.network)
+        response_bytes = response.to_bytes()
         
         state["message"] = "✅ Payment signed!"
         time.sleep(1)
