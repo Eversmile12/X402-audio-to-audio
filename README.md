@@ -2,7 +2,7 @@
 
 **Payments over sound. Because why not.**
 
-x402 made payments native to HTTP. We made them native to _air_.
+x402 made payments native to HTTP. I made them native to _air_.
 
 This is a proof-of-concept showing that the payment primitive underneath x402, [EIP-3009](https://eips.ethereum.org/EIPS/eip-3009), doesn't care how bytes travel. HTTP is just one transport. Sound is another. Light could be next.
 
@@ -66,7 +66,7 @@ This isn't about audio being practical (it's not). It's about proving that **pay
 | Light (Li-Fi) | Pulses          | 🔬 Research |
 
 
-The primitive is transport-agnostic. x402 chose HTTP because it's everywhere. We chose sound because it's ridiculous and proves the point.
+The primitive is transport-agnostic. x402 chose HTTP because it's everywhere. I chose sound because it's ridiculous and proves the point.
 
 ---
 
@@ -122,7 +122,7 @@ python ui_buyer.py     # http://localhost:5002
 
 ### Payload Compression
 
-Standard x402 JSON is ~1KB. Too fat for audio. We compress to:
+Standard x402 JSON is ~1KB. Too fat for audio. x402hz compresses it to:
 
 | Payload  | JSON       | Compact       |
 | -------- | ---------- | ------------- |
@@ -166,13 +166,13 @@ Survives background noise, conversations, and questionable life choices.
 
 -   That audio payments are practical (they're not)
 -   That you should use this in production (please don't)
--   That we have good judgment (debatable)
+-   That I have good judgment (debatable)
 
 ---
 
 ## Acknowledgments
 
-Huge thanks to the [Coinbase x402 team](https://docs.cdp.coinbase.com/x402) for building the protocol that made this possible. x402 is genuinely important infrastructure for web payments. We just... took it off-road.
+Huge thanks to the [Coinbase x402 team](https://docs.cdp.coinbase.com/x402) for building the protocol that made this possible. x402 is genuinely important infrastructure for web payments. I just... took it off-road.
 
 Also thanks to EIP-3009 for existing since 2020 and being criminally underused until now.
 
@@ -180,7 +180,7 @@ Also thanks to EIP-3009 for existing since 2020 and being criminally underused u
 
 ## License
 
-MIT — Do weird things with payments.
+MIT - Do weird things with payments.
 
 ---
 
